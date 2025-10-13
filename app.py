@@ -1,32 +1,40 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
+from datetime import datetime
 
 app = Flask(__name__)
+CORS(app)  # Permite que tu app Android haga requests desde cualquier origen
 
-# Aquí se almacenarán los datos enviados por la app
+# Guardaremos los datos en memoria como ejemplo
 ubicaciones = []
 
-@app.route('/')
-def index():
-    return "Servidor Flask activo ✅"
-
-# Recibir datos de la app (QR + lat + lon)
-@app.route('/ubicacion', methods=['POST'])
-def guardar_ubicacion():
+@app.route("/ubicaciones", methods=["POST"])
+def recibir_ubicacion():
     data = request.get_json()
-    if not data or 'lat' not in data or 'lon' not in data or 'qr' not in data:
-        return jsonify({"error": "Faltan datos (lat, lon o qr)"}), 400
 
-    ubicaciones.append({
-        "lat": data['lat'],
-        "lon": data['lon'],
-        "qr": data['qr']
-    })
-    return jsonify({"mensaje": "Datos guardados correctamente", "total": len(ubicaciones)})
+    # Validar campos
+    required_fields = ["qrId", "lat", "lon", "accuracy", "timestamp"]
+    if not all(field in data for field in required_fields):
+        return jsonify({"error": "Faltan campos"}), 400
 
-# Consultar los datos almacenados
-@app.route('/ubicaciones', methods=['GET'])
+    # Guardar la ubicación en memoria
+    ubicacion = {
+        "qrId": data["qrId"],
+        "lat": data["lat"],
+        "lon": data["lon"],
+        "accuracy": data["accuracy"],
+        "timestamp": data["timestamp"],
+        "recibido": datetime.now().isoformat()
+    }
+    ubicaciones.append(ubicacion)
+
+    print("Nueva ubicación recibida:", ubicacion)
+    return jsonify({"status": "ok"}), 200
+
+@app.route("/ubicaciones", methods=["GET"])
 def listar_ubicaciones():
     return jsonify(ubicaciones)
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(host="0.0.0.0", port=5000)
+
