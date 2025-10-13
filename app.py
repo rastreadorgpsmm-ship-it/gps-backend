@@ -1,14 +1,12 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import json
 import os
 from datetime import datetime
 
 app = Flask(__name__)
 
-# Ruta del archivo donde se guardarán las ubicaciones
 DATA_FILE = "ubicaciones.json"
 
-# Crear el archivo si no existe
 if not os.path.exists(DATA_FILE):
     with open(DATA_FILE, "w") as f:
         json.dump([], f)
@@ -29,11 +27,9 @@ def recibir_ubicacion():
         if not qr_id or lat is None or lon is None:
             return jsonify({"error": "Datos incompletos"}), 400
 
-        # Cargar datos actuales
         with open(DATA_FILE, "r") as f:
             ubicaciones = json.load(f)
 
-        # Agregar nueva ubicación
         ubicaciones.append({
             "qr_id": qr_id,
             "lat": lat,
@@ -41,7 +37,6 @@ def recibir_ubicacion():
             "timestamp": timestamp
         })
 
-        # Guardar
         with open(DATA_FILE, "w") as f:
             json.dump(ubicaciones, f, indent=2)
 
@@ -63,6 +58,13 @@ def obtener_ubicaciones():
         return jsonify({"error": str(e)}), 500
 
 
+# 🗺️ Nueva ruta para mostrar el mapa
+@app.route("/mapa")
+def mapa():
+    return render_template("mapa.html")
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
