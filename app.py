@@ -7,27 +7,29 @@ app = Flask(__name__)
 
 DATA_FILE = "ubicaciones.json"
 
+# Crear archivo de datos si no existe
 if not os.path.exists(DATA_FILE):
     with open(DATA_FILE, "w") as f:
         json.dump([], f)
 
-
+# -----------------------------
+# Ruta principal
+# -----------------------------
 @app.route("/")
 def index():
     return {"status": "Servidor Flask en línea 🚀"}
 
-
 # -----------------------------
-# Endpoint para registrar ubicación
+# Endpoint para registrar ubicación (POST)
 # -----------------------------
 @app.route("/ubicaciones/registrar", methods=["POST"])
 def recibir_ubicacion():
     try:
         data = request.get_json()
-        qr_id = data.get("qrId")  # 👈 ahora coincide con la app
+        qr_id = data.get("qrId")
         lat = data.get("lat")
         lon = data.get("lon")
-        timestamp = data.get("timestamp")  # ISO 8601 enviado desde la app
+        timestamp = data.get("timestamp") or datetime.utcnow().isoformat()
 
         if not qr_id or lat is None or lon is None:
             return jsonify({"error": "Datos incompletos"}), 400
@@ -39,7 +41,7 @@ def recibir_ubicacion():
             "qrId": qr_id,
             "lat": lat,
             "lon": lon,
-            "timestamp": timestamp or datetime.utcnow().isoformat()
+            "timestamp": timestamp
         })
 
         with open(DATA_FILE, "w") as f:
@@ -52,9 +54,8 @@ def recibir_ubicacion():
         print("❌ Error al procesar ubicación:", e)
         return jsonify({"error": "Error interno"}), 500
 
-
 # -----------------------------
-# Endpoint para obtener todas las ubicaciones
+# Endpoint para obtener todas las ubicaciones (GET)
 # -----------------------------
 @app.route("/ubicaciones", methods=["GET"])
 def obtener_ubicaciones():
@@ -65,9 +66,8 @@ def obtener_ubicaciones():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 # -----------------------------
-# Endpoint para obtener ubicaciones de un QR específico
+# Endpoint para obtener ubicaciones de un QR específico (GET)
 # -----------------------------
 @app.route("/ubicaciones/qr/<qr>", methods=["GET"])
 def obtener_ubicaciones_por_qr(qr):
@@ -80,19 +80,23 @@ def obtener_ubicaciones_por_qr(qr):
         # Ordenar por timestamp ascendente
         resultados.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]))
 
+        if not resultados:
+            return jsonify({"error": "No se encontraron ubicaciones para este QR"}), 404
+
         return jsonify(resultados), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
-# 🗺️ Ruta opcional para mostrar mapa en navegador
+# -----------------------------
+# Ruta opcional para mostrar mapa en navegador
+# -----------------------------
 @app.route("/mapa")
 def mapa():
     return render_template("mapa.html")
 
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
 
 
 
